@@ -12,6 +12,7 @@ from timer import Timer
 class SemiSupervisedBase:
 
     def __init__(self, name, method = "random"):
+        self.cache = None
         self.name = name
         self.method = method
         with open("data/{}.dat".format(name), "rb") as infile:
@@ -108,7 +109,7 @@ class SemiSupervisedBase:
     def update_labeled_greedy(self):
         Timer.start("Greedy")
         for i in range(self.batch_count):
-            Timer.start("Single")
+            #Timer.start("Single")
             max_dist = 0
             max_pos = -1
             for j in range(len(self.unlabeled_pos_list)):
@@ -118,20 +119,27 @@ class SemiSupervisedBase:
                     max_pos = self.unlabeled_pos_list[j]
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
-            print("Single Update {}".format(Timer.stop("Single")))
+            #print("Single Update {}".format(Timer.stop("Single")))
         print("Greedy Update {}".format(Timer.stop("Greedy")))
 
     def get_min_distance(self, i):
         min_dist = None
         min_pos = -1
         for j in self.labeled_pos_list:
-            x = self.data["data"][i]
-            y = self.data["data"][j]
-            dist = np.linalg.norm(x-y)
+            dist = self.calc_distance(i, j)
             if min_dist is None or dist < min_dist:
                 min_dist = dist
                 min_pos = j
         return min_dist
+
+    def calc_distance(self, i, j):
+        if self.cache is None:
+            self.cache = np.ones((self.data["data"].shape[0], self.data["data"].shape[0])) * -1
+        if self.cache[i, j] == -1:
+            x = self.data["data"][i]
+            y = self.data["data"][j]
+            self.cache[i, j] = np.linalg.norm(x-y)
+        return self.cache[i, j]
 
 def get_mean_absolute_error(y_actual, y_predict):
     T = y_actual.size
