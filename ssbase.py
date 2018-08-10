@@ -14,15 +14,16 @@ class SemiSupervisedBase:
 
     def __init__(self, name, method = "random"):
         # Configuration variables.
-        self.num_runs = 30
-        self.num_iterations = 11
-        self.label_percent = 0.1
-        self.test_percent = 0.2
-        self.batch_percent = 0.03
+        self.num_runs = 30 # Number of runs to average for results.
+        self.num_committee = 4 # Size of the committee for QBC.
+        self.num_iterations = 11 # Number of active learning loops.
+        self.label_percent = 0.1 # Percent of labeled data.
+        self.test_percent = 0.2 # Percent of test data.
+        self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
         # Initialize variables.
-        self.cache = None
-        self.name = name
-        self.method = method
+        self.cache = None # Used to cache values to speed up iterations.
+        self.name = name # Name of the data set to use.
+        self.method = method # Name of active learning method.
         # Read data.
         with open("data/{}.dat".format(name), "rb") as infile:
             self.data = pickle.loads(infile.read())
@@ -31,6 +32,7 @@ class SemiSupervisedBase:
         print("Start process for {} {}...".format(self.name, self.method))
         mae = []
         for i in range(self.num_runs):
+            random.seed(i)
             mae.append(self.process())
         mae = np.array(mae)
 
@@ -51,9 +53,10 @@ class SemiSupervisedBase:
 
         # Write output.
         with open("results/{}.txt".format(self.name + "_" + self.method), "w") as outfile:
-            outfile.write("x\ty_average\ty_stddev\n")
-            for i in range(len(x)):
-                outfile.write(str(x[i]) + "\t" + str(y_average[i]) + "\t" + str(y_stddev[i]) + "\n")
+            outfile.write("iteration\tmae\n")
+            for i in range(mae.shape[0]):
+                for j in range(mae.shape[1]):
+                    outfile.write(str(j) + "\t" + str(mae[i, j]) + "\n")
         
         # Build 1 stddev.
         y_top = y_average + y_stddev
@@ -78,6 +81,7 @@ class SemiSupervisedBase:
         """
         Timer.start("Train")
         # Get counts for different sets.
+        self.cache = None
         count = self.data["data"].shape[0]
         labeled_count = int(count * self.label_percent)
         test_count = int(count * self.test_percent)
@@ -145,24 +149,29 @@ class SemiSupervisedBase:
 
     def update_labeled_greedy(self):
         Timer.start("Greedy")
+        self.calc_count = 0
         for i in range(self.batch_count):
+            sub_time = 0
             max_dist = 0
             max_pos = -1
             for j in range(len(self.unlabeled_pos_list)):
-                dist = self.get_min_distance(j)
+                pos = self.unlabeled_pos_list[j]
+                dist = self.get_min_distance(pos)
                 if dist > max_dist:
                     max_dist = dist
-                    max_pos = self.unlabeled_pos_list[j]
+                    max_pos = pos
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
+        print(self.calc_count)
+
         total_time = Timer.stop("Greedy")
-        #print("Greedy Update {:.2f}s".format(total_time))
+        print("Greedy Loop {:.2f}s".format(total_time))
 
     def update_labeled_qbc(self):
         Timer.start("QBC")
         # Build the committee.
         models = []
-        for i in range(4):
+        for i in range(self.num_committee):
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list)
 
@@ -210,13 +219,15 @@ class SemiSupervisedBase:
         return min_dist
 
     def calc_distance(self, i, j):
+        key = (i, j)
         if self.cache is None:
-            self.cache = np.ones((self.data["data"].shape[0], self.data["data"].shape[0])) * -1
-        if self.cache[i, j] == -1:
+            self.cache = {}
+        if key not in self.cache:
             x = self.data["data"][i]
             y = self.data["data"][j]
-            self.cache[i, j] = np.linalg.norm(x-y)
-        return self.cache[i, j]
+            self.cache[key] = np.linalg.norm(x-y)
+            self.calc_count += 1
+        return self.cache[key]
 
 
 def get_mean_absolute_error(y_actual, y_predict):
