@@ -6,7 +6,6 @@ import pickle
 import json
 
 
-# Load the diabetes dataset
 def main():
     convert("bike")
     convert("concrete")
@@ -32,7 +31,7 @@ def convert(name):
     print("Normalizing {}...".format(name))
     # Get meta data
     with open("data/{}.meta".format(name), "r") as infile:
-        column = int(infile.read())
+        meta = json.loads(infile.read())
     # Read header
     with open("data/{}.txt".format(name), "r") as infile:
         for line in infile:
@@ -44,13 +43,16 @@ def convert(name):
 
     header = np.array(header)
     m = list(range(x.shape[1]))
-    del m[column]
+    del m[meta["target_pos"]]
+    for pos in meta["omit_list"]:
+        del m[pos]
     a = {
         'data': normalize(x[:, m]),
-        'target': x[:, column],
+        'target': x[:, meta["target_pos"]],
         'feature_names': header[m],
-        'target_names': header[column],
+        'target_names': header[meta["target_pos"]],
     }
+    print_summary(a)
     with open("data/{}.dat".format(name), "wb") as outfile:
         outfile.write(pickle.dumps(a))
 
@@ -79,6 +81,12 @@ def normalize(data):
                 print(data[i, :])
                 exit()
     return data
+
+
+def print_summary(data):
+    print("Target Name: {}".format(data["target_names"]))
+    print("Feature Count: {}".format(data["feature_names"].size))
+    print("Data Size: {}".format(data["data"].shape[0]))
 
 
 if __name__ == "__main__":
