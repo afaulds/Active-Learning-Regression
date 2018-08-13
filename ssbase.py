@@ -8,18 +8,20 @@ import json
 import math
 import random
 from timer import Timer
+from sgd_linear import SGDLinear
 
 
 class SemiSupervisedBase:
 
     def __init__(self, name, method = "random"):
         # Configuration variables.
-        self.num_runs = 30 # Number of runs to average for results.
+        self.num_runs = 10 # Number of runs to average for results.
         self.num_committee = 4 # Size of the committee for QBC.
         self.num_iterations = 11 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
         self.test_percent = 0.2 # Percent of test data.
         self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
+        self.alpha = 0.05 # Value for learning rate.
         # Initialize variables.
         self.cache = None # Used to cache values to speed up iterations.
         self.name = name # Name of the data set to use.
@@ -32,7 +34,7 @@ class SemiSupervisedBase:
         print("Start process for {} {}...".format(self.name, self.method))
         mae = []
         for i in range(self.num_runs):
-            random.seed(i)
+            random.seed(i * 100)
             mae.append(self.process())
         mae = np.array(mae)
 
@@ -53,7 +55,7 @@ class SemiSupervisedBase:
 
         # Write output.
         with open("results/{}.txt".format(self.name + "_" + self.method), "w") as outfile:
-            outfile.write("iteration\tmae\n")
+            outfile.write("iteration\t{}\n".format(self.method))
             for i in range(mae.shape[0]):
                 for j in range(mae.shape[1]):
                     outfile.write(str(j) + "\t" + str(mae[i, j]) + "\n")
@@ -63,11 +65,11 @@ class SemiSupervisedBase:
         y_bottom = y_average - y_stddev
 
         # Plot range
-        fig, ax = plt.subplots()
-        ax.plot(x, y_average, color="black")
-        ax.plot(x, y_top, x, y_bottom, color="black")
-        ax.fill_between(x, y_average, y_top, where=y_top>y_average, facecolor="green", alpha=0.5)
-        ax.fill_between(x, y_average, y_bottom, where=y_bottom<=y_average, facecolor="red", alpha=0.5)
+        #fig, ax = plt.subplots()
+        #ax.plot(x, y_average, color="black")
+        #ax.plot(x, y_top, x, y_bottom, color="black")
+        #ax.fill_between(x, y_average, y_top, where=y_top>y_average, facecolor="green", alpha=0.5)
+        #ax.fill_between(x, y_average, y_bottom, where=y_bottom<=y_average, facecolor="red", alpha=0.5)
         #plt.show()
 
     def process(self):
@@ -80,8 +82,9 @@ class SemiSupervisedBase:
             None
         """
         Timer.start("Train")
-        # Get counts for different sets.
+        # Reset cache values
         self.cache = None
+        # Get counts for different sets.
         count = self.data["data"].shape[0]
         labeled_count = int(count * self.label_percent)
         test_count = int(count * self.test_percent)
@@ -95,6 +98,9 @@ class SemiSupervisedBase:
         self.test_pos_list = pos_list[(labeled_count+unlabeled_count):]
 
         mae_list = []
+        # Use linear regression using SGD
+        #self.model = linear_model.SGDRegressor(alpha = self.alpha, learning_rate = 'constant', penalty = 'none', l1_ratio = 0, max_iter = 5, eta0 = self.alpha, warm_start = True, fit_intercept = True)
+        self.model = SGDLinear()
         for j in range(self.num_iterations):
             Timer.start("{} iteration".format(j))
             mae = self.train()
@@ -114,16 +120,11 @@ class SemiSupervisedBase:
         data_y_train = self.data["target"][ self.labeled_pos_list ]
         data_y_test = self.data["target"][ self.test_pos_list ]
 
-        # Create linear regression object
-        regr = linear_model.LinearRegression()
-        # Use linear regression using SGD
-        #regr = linear_model.SGDRegressor(alpha=0.05, learning_rate='constant', penalty='none')
-
         # Train the model using the training sets
-        regr.fit(data_X_train, data_y_train)
+        self.model.fit(X = data_X_train, y = data_y_train)
 
         # Make predictions using the testing set
-        data_y_pred = regr.predict(data_X_test)
+        data_y_pred = self.model.predict(X = data_X_test)
 
         # Get prediction error using mean absolute error.
         mae = get_mean_absolute_error(data_y_test, data_y_pred)
@@ -162,10 +163,9 @@ class SemiSupervisedBase:
                     max_pos = pos
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
-        print(self.calc_count)
 
         total_time = Timer.stop("Greedy")
-        print("Greedy Loop {:.2f}s".format(total_time))
+        #print("Greedy Loop {:.2f}s".format(total_time))
 
     def update_labeled_qbc(self):
         Timer.start("QBC")
@@ -181,7 +181,7 @@ class SemiSupervisedBase:
             data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
 
             # Create linear regression object
-            regr = linear_model.LinearRegression()
+            regr = SGDLinear()
 
             # Train the model using the training sets
             regr.fit(data_X_train, data_y_train)
