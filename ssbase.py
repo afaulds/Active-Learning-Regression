@@ -1,14 +1,12 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn import datasets, linear_model
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.utils import resample
-import pickle
 import json
 import math
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
 import random
-from timer import Timer
 from sgd_linear import SGDLinear
+from sklearn.utils import resample
+from timer import Timer
 
 
 class SemiSupervisedBase:
@@ -59,7 +57,7 @@ class SemiSupervisedBase:
             for i in range(mae.shape[0]):
                 for j in range(mae.shape[1]):
                     outfile.write(str(j) + "\t" + str(mae[i, j]) + "\n")
-        
+
         # Build 1 stddev.
         y_top = y_average + y_stddev
         y_bottom = y_average - y_stddev
@@ -74,8 +72,8 @@ class SemiSupervisedBase:
 
     def process(self):
         """
-        This runs the the 
-        
+        This runs the the
+
         Args:
             None
         Return:
@@ -99,7 +97,6 @@ class SemiSupervisedBase:
 
         mae_list = []
         # Use linear regression using SGD
-        #self.model = linear_model.SGDRegressor(alpha = self.alpha, learning_rate = 'constant', penalty = 'none', l1_ratio = 0, max_iter = 5, eta0 = self.alpha, warm_start = True, fit_intercept = True)
         self.model = SGDLinear()
         for j in range(self.num_iterations):
             Timer.start("{} iteration".format(j))
@@ -121,13 +118,16 @@ class SemiSupervisedBase:
         data_y_test = self.data["target"][ self.test_pos_list ]
 
         # Train the model using the training sets
-        self.model.fit(X = data_X_train, y = data_y_train)
+        self.model.fit(train_x = data_X_train, train_y = data_y_train)
 
         # Make predictions using the testing set
         data_y_pred = self.model.predict(X = data_X_test)
+        #data_y_pred = self.model.predict(X = data_X_train)
 
         # Get prediction error using mean absolute error.
         mae = get_mean_absolute_error(data_y_test, data_y_pred)
+        #mae = get_mean_absolute_error(data_y_train, data_y_pred)
+        print(mae)
         return mae
 
     def update_labeled(self):
@@ -186,7 +186,7 @@ class SemiSupervisedBase:
             # Train the model using the training sets
             regr.fit(data_X_train, data_y_train)
             models.append(regr)
-        
+
         variances = []
         for i in range(len(self.unlabeled_pos_list)):
             pos = self.unlabeled_pos_list[i]
@@ -231,9 +231,6 @@ class SemiSupervisedBase:
 
 
 def get_mean_absolute_error(y_actual, y_predict):
-    T = y_actual.size
-    mae = 0
-    for i in range(T):
-        mae += abs(y_actual[i] - y_predict[i])
-    mae = mae / T
+    T = y_actual.shape[0]
+    mae = np.sum(abs(y_actual - y_predict)) / T
     return mae

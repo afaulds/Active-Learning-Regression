@@ -7,4 +7,6 @@ This project is a replication of the work from CAI 2016 - Batch Mode Active Lear
 
 **plot.py** - Test different plotting options.
 
+**test.py** - Test suit to make sure code is working the as expected.
+
 **timer.py** - Timer class used to measure speed of different parts of the code.  Used to optimize code segments.

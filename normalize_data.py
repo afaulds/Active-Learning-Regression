@@ -21,7 +21,7 @@ def convert(name):
     """
     Go through each file and change it to an object
     containing data, target, feature_names, and target_names.
-    
+
     Args:
         name - Name of file before extension.
     Return:
@@ -48,7 +48,7 @@ def convert(name):
         del m[pos]
     a = {
         'data': normalize(x[:, m]),
-        'target': x[:, meta["target_pos"]],
+        'target': x[:, [meta["target_pos"]]],
         'feature_names': header[m],
         'target_names': header[meta["target_pos"]],
     }
@@ -61,7 +61,7 @@ def normalize(data):
     """
     Take feature set and normalize each column based
     on min and max value (scale variable from 0 to 1).
-    
+
     Args:
         data - np matrix containing all features.
     Return:

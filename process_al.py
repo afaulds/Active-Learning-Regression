@@ -5,15 +5,12 @@ def main():
     #s = SemiSupervisedBase("concrete", "greedy")
     #s.get_average()
     names = ["forestfires", "concrete", "cps", "pm10", "housing", "redwine", "whitewine", "bike"]
+    names = ["pm10"]
+    methods = ["random", "greedy", "qbc"]
     for name in names:
-        s = SemiSupervisedBase(name, "random")
-        s.get_average()
-    for name in names:
-        s = SemiSupervisedBase(name, "qbc")
-        s.get_average()
-    for name in names:
-        s = SemiSupervisedBase(name, "greedy")
-        s.get_average()
+        for method in methods:
+            s = SemiSupervisedBase(name, method)
+            s.get_average()
 
 
 if __name__ == "__main__":
