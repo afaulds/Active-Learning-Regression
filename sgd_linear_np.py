@@ -4,8 +4,8 @@ import numpy as np
 class SGDLinear:
 
     def __init__(self):
-        self.learning_rate = 0.02
-        self.num_epochs = 100
+        self.learning_rate = 0.05
+        self.num_epochs = 5
         self.coef = None
         self.inter = None
 
@@ -27,4 +27,6 @@ class SGDLinear:
                 self.inter = self.inter - self.learning_rate * error
 
     def predict(self, X):
-        return (np.matmul(X, self.coef) + self.inter)[:, 0]
+        y = np.matmul(X, self.coef) + self.inter
+        y = np.asmatrix(y)
+        return y
