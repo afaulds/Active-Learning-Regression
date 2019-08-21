@@ -1,5 +1,4 @@
-This project is a replication of the work from CAI 2016 - Batch Mode Active Learning for Regression With Expected Model Change.
-
+This project is a replication of the work from CAI 2017 - Batch Mode Active Learning for Regression With Expected Model Change.
 
 **normalize_data.py** - This both normalizes the format and the data.  In normalizing the format, it pickles an object containing data, target, feature_names, target_names.  It also goes through all the features and normalizes following page 56 of Cai 2013 - Maximizing Expected Model.
 
