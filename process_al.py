@@ -2,13 +2,12 @@ from ssbase import SemiSupervisedBase
 
 
 def main():
-    #s = SemiSupervisedBase("concrete", "greedy")
-    #s.get_average()
     names = ["forestfires", "concrete", "cps", "pm10", "housing", "redwine", "whitewine", "bike"]
-    names = ["concrete"]
+    names = ["concrete", "cps", "pm10", "housing"]
     methods = ["random", "bemcm", "qbc", "greedy", "qbc2"]
     methods = ["random", "bemcm", "qbc", "greedy"]
-    #methods = ["greedy"]
+    methods = ["random", "qbc"]
+    # methods = ["random"]
     for name in names:
         for method in methods:
             s = SemiSupervisedBase(name, method)

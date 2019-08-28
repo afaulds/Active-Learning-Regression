@@ -2,10 +2,10 @@ import json
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pickle
 import random
 from sgd_linear import SGDLinear
-from greedy import Greedy
 from sklearn.utils import resample
 from timer import Timer
 import time
@@ -15,9 +15,9 @@ class SemiSupervisedBase:
 
     def __init__(self, name, method = "random"):
         # Configuration variables.
-        self.num_runs = 10 # Number of runs to average for results.
+        self.num_runs = 20 # Number of runs to average for results.
         self.num_committee = 4 # Size of the committee for QBC.
-        self.num_iterations = 11 # Number of active learning loops.
+        self.num_iterations = 21 # 25 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
         self.test_percent = 0.2 # Percent of test data.
         self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
@@ -33,8 +33,8 @@ class SemiSupervisedBase:
         print("Start process for {} {}...".format(self.name, self.method))
         rmse = []
         for i in range(self.num_runs):
-            random.seed(i * 473)
-            np.random.seed(i * 473)
+            random.seed(i * 555)
+            np.random.seed(i * 555)
             rmse.append(self.process())
         rmse = np.array(rmse)
 
@@ -54,23 +54,57 @@ class SemiSupervisedBase:
         y_stddev = np.sqrt(y_stddev / N)
 
         # Write output.
-        with open("results/{}.txt".format(self.name + "_" + self.method), "w") as outfile:
+        if not os.path.isdir("results"):
+            os.mkdir("results")
+        with open("results/{}_{}.txt".format(self.name, self.method), "w") as outfile:
             outfile.write("iteration\t{}\n".format(self.method))
-            for i in range(rmse.shape[0]):
-                for j in range(rmse.shape[1]):
-                    outfile.write(str(j) + "\t" + str(rmse[i, j]) + "\n")
+            # for i in range(rmse.shape[0]):
+            #    for j in range(rmse.shape[1]):
+            #        outfile.write(str(j) + "\t" + str(rmse[i, j]) + "\n")
+            for i in range(len(y_average)):
+                    outfile.write(str(i) + "\t" + str(y_average[i]) + "\n")
 
         # Build 1 stddev.
         y_top = y_average + y_stddev
         y_bottom = y_average - y_stddev
 
         # Plot range
-        #fig, ax = plt.subplots()
-        #ax.plot(x, y_average, color="black")
-        #ax.plot(x, y_top, x, y_bottom, color="black")
-        #ax.fill_between(x, y_average, y_top, where=y_top>y_average, facecolor="green", alpha=0.5)
-        #ax.fill_between(x, y_average, y_bottom, where=y_bottom<=y_average, facecolor="red", alpha=0.5)
-        #plt.show()
+        fig, ax = plt.subplots()
+        ax.plot(x, y_average, color="black")
+        ax.plot(x, y_top, x, y_bottom, color="black")
+        ax.fill_between(x, y_average, y_top, where=y_top>y_average, facecolor="green", alpha=0.5)
+        ax.fill_between(x, y_average, y_bottom, where=y_bottom<=y_average, facecolor="red", alpha=0.5)
+        plt.savefig("results/{}_{}.png".format(self.name, self.method))
+        self.plot_all()
+
+    def plot_all(self):
+        files = os.listdir("results/")
+        data = []
+        for file in files:
+            if file.startswith(self.name) and file.endswith(".txt"):
+                with open("results/{}".format(file), "r") as infile:
+                    is_first_line = True
+                    item = {
+                        "x": [],
+                        "y": [],
+                        "label": "",
+                    }
+                    for line in infile:
+                        if is_first_line:
+                            vals = line.strip("\n").split("\t")
+                            item["label"] = vals[1]
+                            is_first_line = False
+                        else:
+                            vals = line.strip("\n").split("\t")
+                            item["x"].append(float(vals[0]))
+                            item["y"].append(float(vals[1]))
+                    data.append(item)
+        # Plot range
+        fig, ax = plt.subplots()
+        for item in data:
+            ax.plot(item["x"][2:], item["y"][2:], label=item["label"])
+        ax.legend(loc='upper right')
+        plt.savefig("results/{}.png".format(self.name))
 
     def process(self):
         """
@@ -106,7 +140,6 @@ class SemiSupervisedBase:
             rmse_list.append(rmse)
             self.update_labeled()
             total_time = Timer.stop("{} iteration".format(j))
-            #print("Iteration #{} {:.2f}s".format((j+1), total_time))
         total_time = Timer.stop("Train")
         print("Full Training Cycle {:.2f}s".format(total_time))
         return np.array(rmse_list)
@@ -120,15 +153,16 @@ class SemiSupervisedBase:
         data_y_test = self.data["target"][ self.test_pos_list ]
 
         # Train the model using the training sets
-        self.model.fit(train_x = data_X_train, train_y = data_y_train)
+        self.model.fit(data_X_train, data_y_train)
 
         # Make predictions using the testing set
-        data_y_pred = self.model.predict(X = data_X_test)
-        #data_y_pred = self.model.predict(X = data_X_train)
+        data_y_pred = self.model.predict(data_X_test)
+        #data_y_pred = self.model.predict(data_X_train)
 
         # Get prediction error using mean absolute error.
         rmse = get_root_mean_squared(data_y_test, data_y_pred)
         #rmse = get_root_mean_squared(data_y_train, data_y_pred)
+        #rmse = get_mean_absolute_error(data_y_test, data_y_pred)
         return rmse
 
     def update_labeled(self):
@@ -136,14 +170,14 @@ class SemiSupervisedBase:
             self.update_labeled_random()
         elif self.method == "greedy":
             self.update_labeled_greedy()
-        elif self.method == "greedy2":
-            self.update_labeled_greedy2()
         elif self.method == "qbc":
             self.update_labeled_qbc()
         elif self.method == "qbc2":
             self.update_labeled_qbc2()
         elif self.method == "bemcm":
             self.update_labeled_bemcm()
+        elif self.method == "none":
+            pass
         else:
             print("Method '{}' is unknown.".format(self.method))
             exit()
@@ -219,13 +253,6 @@ class SemiSupervisedBase:
             self.unlabeled_pos_list.remove(max_pos)
         Timer.stop("BEMCM")
         #Timer.display("BEMCM")
-
-    def update_labeled_greedy2(self):
-        Timer.start("Greedy2")
-        greedy = Greedy(self.data["data"], self.labeled_pos_list, self.unlabeled_pos_list)
-        greedy.batch(self.batch_count)
-        total_time = Timer.stop("Greedy2")
-        print("Greedy2 Loop {:.2f}s".format(total_time))
 
     def update_labeled_qbc(self):
         Timer.start("QBC")
