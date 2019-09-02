@@ -15,42 +15,50 @@ class SemiSupervisedBase:
 
     def __init__(self, name, method = "random"):
         # Configuration variables.
-        self.num_runs = 20 # Number of runs to average for results.
+        self.is_repeatable = True # Indicates if different runs should yield the same results.
+        self.num_runs = 10 # Number of runs to average for results.
         self.num_committee = 4 # Size of the committee for QBC.
-        self.num_iterations = 21 # 25 # Number of active learning loops.
+        self.num_iterations = 200 # 21 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
         self.test_percent = 0.2 # Percent of test data.
-        self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
+        self.batch_percent = 0.000003 #0.03 # Percent of data to add to labeled data in each loop.
         # Initialize variables.
         self.cache = None # Used to cache values to speed up iterations.
         self.name = name # Name of the data set to use.
         self.method = method # Name of active learning method.
+        self.qbc_models = []
         # Read data.
         with open("data/{}.dat".format(name), "rb") as infile:
             self.data = pickle.loads(infile.read())
 
     def get_average(self):
         print("Start process for {} {}...".format(self.name, self.method))
-        rmse = []
+        rmse_list = []
+        percent_list = []
         for i in range(self.num_runs):
-            random.seed(i * 555)
-            np.random.seed(i * 555)
-            rmse.append(self.process())
-        rmse = np.array(rmse)
+            if self.is_repeatable:
+                random.seed(i * 555)
+                np.random.seed(i * 555)
+            (percent_labeled, rmse) = self.process()
+            rmse_list.append(rmse)
+            percent_list = percent_labeled
+
+        rmse_list = np.array(rmse_list)
+        percent_list = np.array(percent_list)
 
         # Calculate Average
-        N = rmse.shape[0]
-        M = rmse.shape[1]
+        N = rmse_list.shape[0]
+        M = rmse_list.shape[1]
         x = list(range(M))
         y_average = np.zeros(M)
         for i in range(N):
-            y_average += rmse[i]
+            y_average += rmse_list[i]
         y_average /= N
 
         # Calculate Standard Deviation
         y_stddev = np.zeros(M)
         for i in range(N):
-            y_stddev += (rmse[i] - y_average) * (rmse[i] - y_average)
+            y_stddev += (rmse_list[i] - y_average) * (rmse_list[i] - y_average)
         y_stddev = np.sqrt(y_stddev / N)
 
         # Write output.
@@ -58,11 +66,11 @@ class SemiSupervisedBase:
             os.mkdir("results")
         with open("results/{}_{}.txt".format(self.name, self.method), "w") as outfile:
             outfile.write("iteration\t{}\n".format(self.method))
-            # for i in range(rmse.shape[0]):
-            #    for j in range(rmse.shape[1]):
-            #        outfile.write(str(j) + "\t" + str(rmse[i, j]) + "\n")
+            # for i in range(rmse_list.shape[0]):
+            #    for j in range(rmse_list.shape[1]):
+            #        outfile.write(str(j) + "\t" + str(rmse_list[i, j]) + "\n")
             for i in range(len(y_average)):
-                    outfile.write(str(i) + "\t" + str(y_average[i]) + "\n")
+                    outfile.write("{}\t{}\t{}\n".format(i, percent_list[i], y_average[i]))
 
         # Build 1 stddev.
         y_top = y_average + y_stddev
@@ -75,6 +83,7 @@ class SemiSupervisedBase:
         ax.fill_between(x, y_average, y_top, where=y_top>y_average, facecolor="green", alpha=0.5)
         ax.fill_between(x, y_average, y_bottom, where=y_bottom<=y_average, facecolor="red", alpha=0.5)
         plt.savefig("results/{}_{}.png".format(self.name, self.method))
+        plt.close()
         self.plot_all()
 
     def plot_all(self):
@@ -86,6 +95,7 @@ class SemiSupervisedBase:
                     is_first_line = True
                     item = {
                         "x": [],
+                        "p": [],
                         "y": [],
                         "label": "",
                     }
@@ -97,7 +107,8 @@ class SemiSupervisedBase:
                         else:
                             vals = line.strip("\n").split("\t")
                             item["x"].append(float(vals[0]))
-                            item["y"].append(float(vals[1]))
+                            item["p"].append(float(vals[1]))
+                            item["y"].append(float(vals[2]))
                     data.append(item)
         # Plot range
         fig, ax = plt.subplots()
@@ -105,6 +116,14 @@ class SemiSupervisedBase:
             ax.plot(item["x"][2:], item["y"][2:], label=item["label"])
         ax.legend(loc='upper right')
         plt.savefig("results/{}.png".format(self.name))
+        plt.close()
+
+        fig, ax = plt.subplots()
+        for item in data:
+            ax.plot(item["p"][2:], item["y"][2:], label=item["label"])
+        ax.legend(loc='upper right')
+        plt.savefig("results/{}_percent.png".format(self.name))
+        plt.close()
 
     def process(self):
         """
@@ -120,10 +139,10 @@ class SemiSupervisedBase:
         self.cache = None
         # Get counts for different sets.
         count = self.data["data"].shape[0]
-        labeled_count = int(count * self.label_percent)
-        test_count = int(count * self.test_percent)
+        labeled_count = int(math.ceil(count * self.label_percent))
+        test_count = int(math.ceil(count * self.test_percent))
         unlabeled_count = count - labeled_count - test_count
-        self.batch_count = int(count * self.batch_percent)
+        self.batch_count = int(math.ceil(count * self.batch_percent))
         pos_list = list(range(count))
         # Split the data into training/testing sets
         random.shuffle(pos_list)
@@ -134,15 +153,17 @@ class SemiSupervisedBase:
         rmse_list = []
         # Use linear regression using SGD
         self.model = SGDLinear()
+        percent_labeled = []
         for j in range(self.num_iterations):
             Timer.start("{} iteration".format(j))
+            percent_labeled.append(1.0 * len(self.labeled_pos_list) / count)
             rmse = self.train()
             rmse_list.append(rmse)
             self.update_labeled()
             total_time = Timer.stop("{} iteration".format(j))
         total_time = Timer.stop("Train")
         print("Full Training Cycle {:.2f}s".format(total_time))
-        return np.array(rmse_list)
+        return (np.array(percent_labeled), np.array(rmse_list))
 
     def train(self):
         data_X_train = self.data["data"][ self.labeled_pos_list ]
@@ -191,25 +212,25 @@ class SemiSupervisedBase:
 
     def update_labeled_greedy(self):
         Timer.reset("Greedy")
-        for i in range(self.batch_count):
-            sub_time = 0
-            max_dist = 0
-            max_pos = -1
-            for j in range(len(self.unlabeled_pos_list)):
-                pos = self.unlabeled_pos_list[j]
-                dist = self.get_min_distance(pos)
-                if dist > max_dist:
-                    max_dist = dist
-                    max_pos = pos
-            self.labeled_pos_list.append(max_pos)
-            self.unlabeled_pos_list.remove(max_pos)
+        dist_list = []
+        for j in range(len(self.unlabeled_pos_list)):
+            pos = self.unlabeled_pos_list[j]
+            dist_list.append(self.get_min_distance(pos))
+        x = sorted(zip(dist_list, self.unlabeled_pos_list), reverse=True)
+        (_, pos_list) = zip(*x)
+        for pos in pos_list[:self.batch_count]:
+            self.labeled_pos_list.append(pos)
+            self.unlabeled_pos_list.remove(pos)
         Timer.stop("Greedy")
         #Timer.display("Greedy")
 
     def update_labeled_bemcm(self):
         Timer.reset("BEMCM")
         # Build the committee.
-        models = []
+        if len(self.qbc_models) == 0:
+            for i in range(self.num_committee):
+                self.qbc_models.append(SGDLinear())
+
         for i in range(self.num_committee):
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
@@ -219,12 +240,8 @@ class SemiSupervisedBase:
             # Split the targets into training/testing sets
             data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
 
-            # Create linear regression object
-            model = SGDLinear()
-
             # Train the model using the training sets
-            model.fit(data_X_train, data_y_train)
-            models.append(model)
+            self.qbc_models[i].fit(data_X_train, data_y_train)
 
         y_act = {}
         y_est = {}
@@ -257,30 +274,30 @@ class SemiSupervisedBase:
     def update_labeled_qbc(self):
         Timer.start("QBC")
         # Build the committee.
-        models = []
+        if len(self.qbc_models) == 0:
+            for i in range(self.num_committee):
+                self.qbc_models.append(SGDLinear())
+
         for i in range(self.num_committee):
             # Build bootstrap of training data.
-            bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
+            bootstrap_labeled_pos_list = resample(self.labeled_pos_list, n_samples=int(self.labeled_pos_list * 0.5), random_state=random.randrange(1000000))
             # Get bootstrap training set.
             data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
             # Get bootstrap target set.
             data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
-            # Create linear regression object
-            model = SGDLinear()
             # Train the model using the training sets
-            model.fit(data_X_train, data_y_train)
-            models.append(model)
+            self.qbc_models[i].fit(data_X_train, data_y_train)
 
         variances = []
         for pos in self.unlabeled_pos_list:
             variance = 0
             y_ave = 0
-            for model in models:
+            for model in self.qbc_models:
                 y = model.predict(self.data["data"][ [pos], :])
                 variance += y * y
                 y_ave += y
-            y_ave /= (len(models) * 1.0)
-            variance /= (len(models) * 1.0)
+            y_ave /= (len(self.qbc_models) * 1.0)
+            variance /= (len(self.qbc_models) * 1.0)
             variance -= y_ave * y_ave
             variances.append((variance, pos))
 
@@ -344,7 +361,10 @@ class SemiSupervisedBase:
         return min_dist
 
     def calc_distance(self, i, j):
-        key = (i, j)
+        if i <= j:
+            key = (i, j)
+        else:
+            key = (j, i)
         if self.cache is None:
             self.cache = {}
         if key not in self.cache:

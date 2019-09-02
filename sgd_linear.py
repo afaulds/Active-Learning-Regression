@@ -8,9 +8,10 @@ class SGDLinear:
     def __init__(self):
         self.log_transform = False
         self.model = SGDRegressor(loss="squared_loss",
-            penalty="none", eta0=0.05, max_iter=5,
-            learning_rate="constant", warm_start=False,
+            penalty="none", eta0=0.05, max_iter=100,
+            learning_rate="constant", warm_start=True,
             alpha=0, tol=None)
+        self.model = SGDRegressor(eta0=0.05, warm_start=True)
 
     def fit(self, x, y):
         if self.log_transform:
