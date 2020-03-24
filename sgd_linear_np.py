@@ -5,7 +5,7 @@ class SGDLinear:
 
     def __init__(self):
         self.learning_rate = 0.05
-        self.num_epochs = 5
+        self.num_epochs = 1
         self.coef = None
         self.inter = None
 
@@ -17,13 +17,16 @@ class SGDLinear:
         xdim = x.shape[1]
         ydim = 1
         if self.coef is None:
-            self.coef = np.zeros((xdim, 1))
-            self.inter = np.zeros((ydim, 1))
+            self.coef = 0 * np.ones((xdim, 1))
+            self.inter = 0 * np.ones((ydim, 1))
+            return
 
         i_train = list(range(num_training))
         for epoch in range(self.num_epochs):
-            np.random.shuffle(i_train)
-            for i in i_train:
+            #np.random.shuffle(i_train)
+            #subset_i_train = i_train[0:1]
+            subset_i_train = i_train
+            for i in subset_i_train:
                 error = np.matmul(x[[i], :], self.coef) + self.inter - transform_y[[i], :]
                 self.coef = self.coef - self.learning_rate * np.matmul(np.transpose(x[[i], :]), error)
                 self.inter = self.inter - self.learning_rate * error

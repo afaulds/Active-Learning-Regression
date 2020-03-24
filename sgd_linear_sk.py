@@ -9,7 +9,7 @@ class SGDLinear:
         self.log_transform = False
         self.model = SGDRegressor(loss="squared_loss",
             penalty="none", eta0=0.05, max_iter=1,
-            learning_rate="constant", warm_start=False,
+            learning_rate="constant", warm_start=True,
             alpha=0, tol=None)
 
     def fit(self, x, y):

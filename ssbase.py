@@ -18,10 +18,10 @@ class SemiSupervisedBase:
         self.is_repeatable = True # Indicates if different runs should yield the same results.
         self.num_runs = 10 # Number of runs to average for results.
         self.num_committee = 4 # Size of the committee for QBC.
-        self.num_iterations = 200 # 21 # Number of active learning loops.
+        self.num_iterations = 11 # 11 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
         self.test_percent = 0.2 # Percent of test data.
-        self.batch_percent = 0.000003 #0.03 # Percent of data to add to labeled data in each loop.
+        self.batch_percent = 0.03 #0.03 # Percent of data to add to labeled data in each loop.
         # Initialize variables.
         self.cache = None # Used to cache values to speed up iterations.
         self.name = name # Name of the data set to use.
@@ -113,14 +113,14 @@ class SemiSupervisedBase:
         # Plot range
         fig, ax = plt.subplots()
         for item in data:
-            ax.plot(item["x"][2:], item["y"][2:], label=item["label"])
+            ax.plot(item["x"][1:], item["y"][1:], label=item["label"])
         ax.legend(loc='upper right')
         plt.savefig("results/{}.png".format(self.name))
         plt.close()
 
         fig, ax = plt.subplots()
         for item in data:
-            ax.plot(item["p"][2:], item["y"][2:], label=item["label"])
+            ax.plot(item["p"][1:], item["y"][1:], label=item["label"])
         ax.legend(loc='upper right')
         plt.savefig("results/{}_percent.png".format(self.name))
         plt.close()
@@ -252,10 +252,10 @@ class SemiSupervisedBase:
             y_act[pos] = self.data["target"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
-            for j in range(len(models)):
-                y = models[j].predict(x)
+            for j in range(len(self.qbc_models)):
+                y = self.qbc_models[j].predict(x)
                 eq_24[pos] += np.linalg.norm((fx - y) * x)
-            eq_24[pos] /= (1.0 * len(models))
+            eq_24[pos] /= (1.0 * len(self.qbc_models))
 
         for i in range(self.batch_count):
             max_change = -1
@@ -280,7 +280,7 @@ class SemiSupervisedBase:
 
         for i in range(self.num_committee):
             # Build bootstrap of training data.
-            bootstrap_labeled_pos_list = resample(self.labeled_pos_list, n_samples=int(self.labeled_pos_list * 0.5), random_state=random.randrange(1000000))
+            bootstrap_labeled_pos_list = resample(self.labeled_pos_list, n_samples=int(len(self.labeled_pos_list) * 0.5), random_state=random.randrange(1000000))
             # Get bootstrap training set.
             data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
             # Get bootstrap target set.
