@@ -7,7 +7,7 @@ import pickle
 import random
 from sgd_linear import SGDLinear
 from sklearn.utils import resample
-from timer import Timer
+from utils import Timer
 import time
 
 
@@ -139,6 +139,7 @@ class SemiSupervisedBase:
         ax.set_title("MAE per Percent Labeled")
         ax.set(xlabel="Percent Labeled", ylabel="MAE")
         ax.legend(loc='upper right')
+        self.set_percent_limit(ax)
         plt.savefig("results/{}_percent.png".format(self.name))
         plt.close()
 
@@ -171,6 +172,7 @@ class SemiSupervisedBase:
         ax.set_title("Label Data per Iteration")
         ax.set(xlabel="Iteration", ylabel="Percent Add Label")
         ax.legend(loc='upper right')
+        self.set_diff_limit(ax)
         plt.savefig("results/{}_diff.png".format(self.name))
         plt.close()
 
@@ -194,8 +196,10 @@ class SemiSupervisedBase:
         self.batch_count = int(math.ceil(count * self.batch_percent))
         if self.method == "abemcm_linear-":
             self.adaptive_batch_count = int(math.ceil(1.3 * count * self.batch_percent))
+            self.adaptive_batch_diff = int(math.ceil(0.0018 * count))
         else:
-            self.adaptive_batch_count = int(math.ceil(0.6 * count * self.batch_percent))
+            self.adaptive_batch_count = int(math.ceil(0.7 * count * self.batch_percent))
+            self.adaptive_batch_diff = int(math.ceil(0.0018 * count))
         pos_list = list(range(count))
         # Split the data into training/testing sets
         random.shuffle(pos_list)
@@ -380,7 +384,7 @@ class SemiSupervisedBase:
             del eq_24[max_pos]
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
-        self.adaptive_batch_count = int(math.ceil(self.adaptive_batch_count * 1.05))
+        self.adaptive_batch_count += self.adaptive_batch_diff
         Timer.stop("ABEMCM LINEAR PLUS")
         #Timer.display("ABEMCM LINEAR PLUS")
 
@@ -428,7 +432,9 @@ class SemiSupervisedBase:
             del eq_24[max_pos]
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
-        self.adaptive_batch_count = int(math.floor(self.adaptive_batch_count * 0.95))
+        self.adaptive_batch_count -= self.adaptive_batch_diff
+        if self.adaptive_batch_count < 1:
+            self.adaptive_batch_count = 1
         Timer.stop("ABEMCM LINEAR MINUS")
         #Timer.display("ABEMCM LINEAR MINUS")
 
@@ -484,13 +490,13 @@ class SemiSupervisedBase:
             self.labeled_pos_list.append(max_pos)
             self.unlabeled_pos_list.remove(max_pos)
             actual_batch_count += 1
-            if current_eq_24 / first_eq_24 < self.adaptive_ratio:
+            if current_eq_24 / first_eq_24 < self.adaptive_ratio * 0.9:
                 break
         Timer.stop("ABEMCM MAX")
         #Timer.display("ABEMCM MAX")
 
     def update_labeled_abemcm_rel(self):
-        Timer.reset("ABEMCM RC")
+        Timer.reset("ABEMCM REL")
         # Build the committee.
         if len(self.qbc_models) == 0:
             for i in range(self.num_committee):
@@ -543,8 +549,8 @@ class SemiSupervisedBase:
             actual_batch_count += 1
             if current_eq_24 / first_eq_24 < self.adaptive_ratio:
                 break
-        self.adaptive_ratio *= 1.001
-        Timer.stop("ABEMCM RC")
+        self.adaptive_ratio *= 0.99
+        Timer.stop("ABEMCM REL")
         #Timer.display("")
 
     def update_labeled_abemcm_eva(self):
@@ -601,7 +607,7 @@ class SemiSupervisedBase:
             actual_batch_count += 1
             if current_eq_24 / first_eq_24 < self.adaptive_ratio:
                 break
-        self.adaptive_ratio *= 0.99
+        self.adaptive_ratio *= 0.998
         Timer.stop("ABEMCM EVA")
         #Timer.display("")
 
@@ -726,6 +732,41 @@ class SemiSupervisedBase:
                         (p - percent_list[i][j-1]) / (percent_list[i][j] - percent_list[i][j-1])) + rmse_list[i][j-1]
                 new_rmse_list[i].append(rmse)
         return (new_percent_list, new_rmse_list)
+
+    # RMSE
+    def XXset_percent_limit(self, ax):
+        if self.name == "concrete":
+            ax.set_ylim([12, 20])
+        elif self.name == "cps":
+            ax.set_ylim([4.4, 5.5])
+        elif self.name == "housing":
+            ax.set_ylim([6.5, 10])
+        elif self.name == "pm10":
+            ax.set_ylim([0.83, 0.9])
+        elif self.name == "redwine":
+            ax.set_ylim([0.7, 0.9])
+        elif self.name == "whitewine":
+            ax.set_ylim([0.75, 0.9])
+
+    # MAE
+    def set_percent_limit(self, ax):
+        if self.name == "concrete":
+            ax.set_ylim([10, 16])
+        elif self.name == "cps":
+            ax.set_ylim([3.1, 4.1])
+        elif self.name == "housing":
+            ax.set_ylim([4.7, 9])
+        elif self.name == "pm10":
+            ax.set_ylim([0.66, 0.75])
+        elif self.name == "redwine":
+            ax.set_ylim([0.53, 0.7])
+        elif self.name == "whitewine":
+            ax.set_ylim([0.58, 0.7])
+
+    def set_diff_limit(self, ax):
+        ax.set_xlim([1, 20])
+        plt.xticks(range(1, 21))
+
 
 def get_mean_absolute_error(y_actual, y_predict):
     T = y_actual.shape[0]

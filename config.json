@@ -1,0 +1,16 @@
+{
+  "names": [
+    "cps"
+  ],
+  "methods": [
+    "random",
+    "bemcm",
+    "abemcm_linear+",
+    "abemcm_linear-",
+    "abemcm_max",
+    "abemcm_rel",
+    "abemcm_eva",
+    "qbc",
+    "greedy"
+  ]
+}

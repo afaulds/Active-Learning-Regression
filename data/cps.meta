@@ -1,5 +1,11 @@
-{
-  "target_pos": 5,
-  "omit_list": [],
-  "categorical": [0, 1, 2, 4, 7, 8, 9, 10]
-}
+EDUCATION	cat
+SOUTH	cat
+SEX	cat
+EXPERIENCE	num
+UNION	cat
+WAGE	num	0
+AGE	num
+RACE	cat
+OCCUPATION	cat
+SECTOR	cat
+MARR	cat
