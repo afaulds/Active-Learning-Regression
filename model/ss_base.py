@@ -7,12 +7,10 @@ class SemiSupervisedBase:
 
     def __init__(self, X, y):
         # Configuration variables.
-        self.num_runs = 10 # Number of runs to average for results.
-        self.num_committee = 4 # Size of the committee for QBC.
         self.max_percent = 0.4 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
         self.test_percent = 0.2 # Percent of test data.
-        self.batch_percent = 0.03 #0.03 # Percent of data to add to labeled data in each loop.
+        self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
 
         # Set variables
         self.X = X
@@ -34,6 +32,7 @@ class SemiSupervisedBase:
 
     def is_done(self):
         return self.get_percent_labeled() > self.max_percent
+
     def get_percent_labeled(self):
         return 1.0 * len(self.labeled_pos_list) / self.X.shape[0]
 
