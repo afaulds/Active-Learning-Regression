@@ -4,16 +4,18 @@ import pickle
 
 class FeatureStandardizer:
 
-    def __init__(self, file_name):
+    def __init__(self, name):
         self.feature_info = []
-        self.meta_file_name = "data/{}.meta".format(file_name)
-        self.data_file_name = "data/{}.txt".format(file_name)
-        self.save_file_name = "data/{}.pkl".format(file_name)
+        self.name = name
+        self.meta_file_name = "data/{}.meta".format(name)
+        self.data_file_name = "data/{}.txt".format(name)
+        self.save_file_name = "data/{}.pkl".format(name)
         self.output_column = -1
         self.output_positive = ""
 
     def process(self):
         self.__read_struct()
+        print("Name: {}".format(self.name))
         print("Num features before: {}".format(len(self.feature_info)-1))
         train_data = np.genfromtxt(self.data_file_name, dtype=['S100']*len(self.feature_info), delimiter='\t', skip_header=False)
         num_rows = len(train_data)
