@@ -16,7 +16,7 @@ class SemiSupervisedBase:
     def __init__(self, name, method = "random"):
         # Configuration variables.
         self.is_repeatable = True # Indicates if different runs should yield the same results.
-        self.num_runs = 4 # Number of runs to average for results.
+        self.num_runs = 10 # Number of runs to average for results.
         self.num_committee = 4 # Size of the committee for QBC.
         self.max_percent = 0.4 # 11 # Number of active learning loops.
         self.label_percent = 0.1 # Percent of labeled data.
@@ -29,7 +29,7 @@ class SemiSupervisedBase:
         self.method = method # Name of active learning method.
         self.qbc_models = []
         # Read data.
-        with open("data/{}.dat".format(name), "rb") as infile:
+        with open("data/{}.pkl".format(name), "rb") as infile:
             self.data = pickle.loads(infile.read())
 
     def get_average(self):
@@ -189,7 +189,7 @@ class SemiSupervisedBase:
         # Reset cache values
         self.cache = None
         # Get counts for different sets.
-        count = self.data["data"].shape[0]
+        count = self.data["X"].shape[0]
         labeled_count = int(math.ceil(count * self.label_percent))
         test_count = int(math.ceil(count * self.test_percent))
         unlabeled_count = count - labeled_count - test_count
@@ -225,12 +225,12 @@ class SemiSupervisedBase:
         return (np.array(percent_labeled_list), np.array(rmse_list))
 
     def train(self):
-        data_X_train = self.data["data"][ self.labeled_pos_list ]
-        data_X_test = self.data["data"][ self.test_pos_list ]
+        data_X_train = self.data["X"][ self.labeled_pos_list ]
+        data_X_test = self.data["X"][ self.test_pos_list ]
 
         # Split the targets into training/testing sets
-        data_y_train = self.data["target"][ self.labeled_pos_list ]
-        data_y_test = self.data["target"][ self.test_pos_list ]
+        data_y_train = self.data["y"][ self.labeled_pos_list ]
+        data_y_test = self.data["y"][ self.test_pos_list ]
 
         # Train the model using the training sets
         self.model.fit(data_X_train, data_y_train)
@@ -304,10 +304,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -316,9 +316,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -351,10 +351,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -363,9 +363,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -399,10 +399,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -411,9 +411,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -449,10 +449,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -461,9 +461,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -506,10 +506,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -518,9 +518,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -564,10 +564,10 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
 
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
 
             # Split the targets into training/testing sets
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
 
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
@@ -576,9 +576,9 @@ class SemiSupervisedBase:
         y_est = {}
         eq_24 = {}
         for pos in self.unlabeled_pos_list:
-            x = self.data["data"][ [pos] , : ]
+            x = self.data["X"][ [pos] , : ]
             fx = self.model.predict(x)
-            y_act[pos] = self.data["target"][pos]
+            y_act[pos] = self.data["y"][pos]
             y_est[pos] = fx
             eq_24[pos] = 0
             for j in range(len(self.qbc_models)):
@@ -622,9 +622,9 @@ class SemiSupervisedBase:
             # Build bootstrap of training data.
             bootstrap_labeled_pos_list = resample(self.labeled_pos_list, n_samples=int(len(self.labeled_pos_list) * 0.5), random_state=random.randrange(1000000))
             # Get bootstrap training set.
-            data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+            data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
             # Get bootstrap target set.
-            data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+            data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
             # Train the model using the training sets
             self.qbc_models[i].fit(data_X_train, data_y_train)
 
@@ -633,7 +633,7 @@ class SemiSupervisedBase:
             variance = 0
             y_ave = 0
             for model in self.qbc_models:
-                y = model.predict(self.data["data"][ [pos], :])
+                y = model.predict(self.data["X"][ [pos], :])
                 variance += y * y
                 y_ave += y
             y_ave /= (len(self.qbc_models) * 1.0)
@@ -661,9 +661,9 @@ class SemiSupervisedBase:
                 # Build bootstrap of training data.
                 bootstrap_labeled_pos_list = resample(self.labeled_pos_list, random_state=random.randrange(1000000))
                 # Get bootstrap training set.
-                data_X_train = self.data["data"][ bootstrap_labeled_pos_list ]
+                data_X_train = self.data["X"][ bootstrap_labeled_pos_list ]
                 # Get bootstrap target set.
-                data_y_train = self.data["target"][ bootstrap_labeled_pos_list ]
+                data_y_train = self.data["y"][ bootstrap_labeled_pos_list ]
                 # Create linear regression object
                 model = SGDLinear()
                 # Train the model using the training sets
@@ -676,7 +676,7 @@ class SemiSupervisedBase:
                 variance = 0
                 y_ave = 0
                 for model in models:
-                    y = model.predict(self.data["data"][ [pos], :])
+                    y = model.predict(self.data["X"][ [pos], :])
                     variance += y * y
                     y_ave += y
                 y_ave /= (len(models) * 1.0)
@@ -708,8 +708,8 @@ class SemiSupervisedBase:
         if self.cache is None:
             self.cache = {}
         if key not in self.cache:
-            x = self.data["data"][i]
-            y = self.data["data"][j]
+            x = self.data["X"][i]
+            y = self.data["X"][j]
             self.cache[key] = np.linalg.norm(x-y)
         x = self.cache[key]
         return x
