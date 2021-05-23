@@ -1,22 +1,39 @@
 {
+  "num_runs": 2,
+  "use_parallel": true,
+  "use_cache": false,
+  "num_processors": 3,
+  "max_percent": 0.4,
+  "label_percent": 0.1,
+  "test_percent": 0.2,
+  "batch_percent": 0.03,
   "names": [
+    "concrete"
+  ],
+  "methods": [
+    "greedy",
+    "random",
+    "qbc"
+  ],
+  "all_names": [
+    "bike",
     "concrete",
     "cps",
     "forestfires",
-    "pm10",
     "housing",
+    "pm10",
     "redwine",
     "whitewine"
   ],
-  "methods": [
-    "random",
-    "bemcm",
+  "all_methods": [
+    "abemcm_eva",
     "abemcm_linear+",
     "abemcm_linear-",
     "abemcm_max",
     "abemcm_rel",
-    "abemcm_eva",
+    "bemcm",
+    "greedy",
     "qbc",
-    "greedy"
+    "random"
   ]
 }

@@ -1,14 +1,19 @@
-import json
-import tempfile
-import os
 import hashlib
+import json
+import os
+import tempfile
 
 
 class Cache:
 
+    recalculate = False
+
+    def reset():
+        Cache.recalculate = True
+
     def process(key, func, *args):
         file_name = Cache.__get_file_name(key)
-        if Cache.__key_exists(file_name):
+        if not Cache.recalculate and Cache.__key_exists(file_name):
             return Cache.__read_file(file_name)
         else:
             val = func(*args)

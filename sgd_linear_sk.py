@@ -6,21 +6,18 @@ import random
 class SGDLinear:
 
     def __init__(self):
-        self.log_transform = False
-        self.model = SGDRegressor(loss="squared_loss",
-            penalty="none", eta0=0.05, max_iter=1,
-            learning_rate="constant", warm_start=True,
-            alpha=0, tol=None)
+        self.log_transform = True
+        self.model = SGDRegressor(max_iter=5000)
 
-    def fit(self, x, y):
+    def fit(self, X, y):
         if self.log_transform:
             transform_y = np.log(y + 1)
         else:
             transform_y = y
-        self.model.fit(x, np.ravel(transform_y))
+        self.model.fit(X, np.ravel(transform_y))
 
-    def predict(self, x):
-        y = self.model.predict(x)
+    def predict(self, X):
+        y = self.model.predict(X)
         y = np.transpose(np.asmatrix(y))
         if self.log_transform:
             y = np.exp(y) - 1

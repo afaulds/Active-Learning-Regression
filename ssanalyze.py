@@ -5,8 +5,7 @@ import os
 import pickle
 import random
 from sklearn.linear_model import SGDRegressor
-from utils import Cache
-from utils import Timer
+from utils import Cache, Config, Timer
 from model import SemiSupervised
 from multiprocessing import Pool
 
@@ -15,7 +14,10 @@ class SemiSupervisedAnalyze:
 
     def __init__(self, name, method):
         # Initialize variables.
-        self.num_runs = 10 # Number of runs to average for results.
+        self.num_runs = Config.get()["num_runs"] # Number of runs to average for results.
+        self.num_processors = Config.get()["num_processors"]
+        self.parallel = Config.get()["use_parallel"]
+        self.use_cache = Config.get()["use_cache"]
         self.name = name # Name of the data set to use.
         self.method = method # Name of active learning method.
 
@@ -25,12 +27,18 @@ class SemiSupervisedAnalyze:
 
     def get_average(self):
         print("Start process for {} {}...".format(self.name, self.method))
-        args = range(self.num_runs)
-        with Pool(5) as p:
-            results = p.map(self.run, args)
+        if self.parallel:
+            args = range(self.num_runs)
+            with Pool(self.num_processors) as p:
+                p.map(self.run, args)
+        else:
+            for i in range(self.num_runs):
+                self.run(i)
 
     def run(self, run_id):
         key = "{}_{}_{}".format(self.name, self.method, run_id)
+        if not self.use_cache:
+            Cache.reset()
         return Cache.process(key, self.__run, run_id)
 
     def __run(self, run_id):
@@ -50,7 +58,8 @@ class SemiSupervisedAnalyze:
             rmse_list.append(rmse)
             mae_list.append(mae)
             ss.update_labeled()
-        total_time = Timer.stop("Train {}".format(run_id)   )
+        total_time = Timer.stop("Train {}".format(run_id))
+        print(rmse_list)
         print("Full Training Cycle {:.2f}s".format(total_time))
         return (percent_labeled_list, rmse_list, mae_list)
 

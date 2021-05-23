@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 import math
 import random
+from utils import Config
 
 
 class SemiSupervisedBase:
 
     def __init__(self, X, y):
         # Configuration variables.
-        self.max_percent = 0.4 # Number of active learning loops.
-        self.label_percent = 0.1 # Percent of labeled data.
-        self.test_percent = 0.2 # Percent of test data.
-        self.batch_percent = 0.03 # Percent of data to add to labeled data in each loop.
+        self.max_percent = Config.get()["max_percent"] # Number of active learning loops.
+        self.label_percent = Config.get()["label_percent"] # Percent of labeled data.
+        self.test_percent = Config.get()["test_percent"] # Percent of test data.
+        self.batch_percent = Config.get()["batch_percent"] # Percent of data to add to labeled data in each loop.
 
         # Set variables
         self.X = X
