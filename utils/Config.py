@@ -6,7 +6,6 @@ class Config:
 
     def __read():
         if Config.__data is None:
-            print("read")
             with open("config.json", "r") as infile:
                 config = json.loads(infile.read())
             Config.__data = config

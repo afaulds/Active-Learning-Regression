@@ -1,5 +1,11 @@
-{
-  "target_pos": -1,
-  "omit_list": [],
-  "categorical": []
-}
+fixed acidity	num
+volatile acidity	num
+citric acid	num
+residual sugar	num
+chlorides	num
+free sulfur dioxide	num
+total sulfur dioxide	num
+density	num
+pH	num
+sulphates	num
+alcohol	quality	num	0

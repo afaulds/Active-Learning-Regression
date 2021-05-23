@@ -70,8 +70,8 @@ class FeatureStandardizer:
                             j += len(cats[k])
         print("Num features after: {}".format(X.shape[1]))
         print("Num items: {}".format(X.shape[0]))
-        print("Num pos: {}".format(sum(y)))
-        print("Num neg: {}".format(sum(1-y)))
+        # print("Num pos: {}".format(sum(y)))
+        # print("Num neg: {}".format(sum(1-y)))
         print("")
         self.__rescale(X)
         self.__write_file(self.save_file_name, X, y)
@@ -103,7 +103,6 @@ class FeatureStandardizer:
                 cat_count.append({0})
             else:
                 cat_count.append({})
-        print(cat_count)
         return cat_count
 
     def __rescale(self, X):

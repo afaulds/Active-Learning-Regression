@@ -1,5 +1,9 @@
-{
-  "target_pos": -1,
-  "omit_list": [],
-  "categorical": []
-}
+cement	num
+blast_furnance_slag	num
+fly_ash	num
+water	num
+superplasticizer	num
+coarse_aggregate	num
+fine_aggregate	num
+age	num
+concrete_compressive_strength	num	0

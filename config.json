@@ -1,6 +1,12 @@
 {
   "names": [
-    "cps"
+    "concrete",
+    "cps",
+    "forestfires",
+    "pm10",
+    "housing",
+    "redwine",
+    "whitewine"
   ],
   "methods": [
     "random",

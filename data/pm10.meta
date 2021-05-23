@@ -1,5 +1,8 @@
-{
-  "target_pos": 0,
-  "omit_list": [],
-  "categorical": [6]
-}
+particles	num	0
+cars_per_hour	num
+temperature2	num
+wind_speed	num
+temperature25	num
+wind_direction	num
+hour_of_date	cat
+day	cat

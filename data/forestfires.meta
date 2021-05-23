@@ -1,5 +1,13 @@
-{
-  "target_pos": -1,
-  "omit_list": [],
-  "categorical": [0, 1, 2, 3]
-}
+X	cat
+Y	cat
+month	cat
+day	cat
+FFMC	num
+DMC	num
+DC	num
+ISI	num
+temp	num
+RH	num
+wind	num
+rain	num
+area	num	0

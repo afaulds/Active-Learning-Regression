@@ -1,5 +1,14 @@
-{
-  "target_pos": -1,
-  "omit_list": [],
-  "categorical": []
-}
+CRIM	num
+ZN	num
+INDUS	num
+CHAS	num
+NOX	num
+RM	num
+AGE	num
+DIS	num
+RAD	num
+TAX	num
+PTRATIO	num
+B	num
+LSTAT	num
+MEDV	num	0

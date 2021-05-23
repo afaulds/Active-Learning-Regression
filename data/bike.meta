@@ -1,5 +1,17 @@
-{
-  "target_pos": -1,
-  "omit_list": [0, 1, 13, 14],
-  "categorical": [2, 3, 4, 5, 6, 7, 8]
-}
+instant	omit
+dteday	omit
+season	cat
+yr	cat
+mnth	cat
+hr	cat
+holiday	cat
+weekday	cat
+workingday	cat
+weathersit	num
+temp	num
+atemp	num
+hum	num
+windspeed	omit
+casual	omit
+registered	num
+cnt	num	0
